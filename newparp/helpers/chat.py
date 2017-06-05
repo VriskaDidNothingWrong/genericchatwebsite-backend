@@ -7,7 +7,7 @@ from functools import wraps
 from sqlalchemy import and_, func
 from sqlalchemy.orm import joinedload
 
-from newparp.model import AnyChat, Ban, Invite, ChatUser, Message
+from newparp.model import AgeGroup, allowed_level_options, AnyChat, Ban, Invite, ChatUser, Message
 from newparp.model.connections import db_connect, get_chat_user
 from newparp.tasks import celery
 
@@ -93,12 +93,11 @@ def authorize_joining(redis, db, context):
     )).scalar() != 0:
         raise BannedException
 
-    if (
-        context.chat.type == "group"
-        and context.user is not None
-        and context.chat.level not in context.user.level_options
-    ):
-        raise BadAgeException
+    if context.chat.type == "group":
+        if context.user is None and context.chat.level not in allowed_level_options[AgeGroup.unknown]:
+            raise BadAgeException
+        elif context.user is not None and context.chat.level not in context.user.level_options:
+            raise BadAgeException
 
     online_user_count = len(set(redis.hvals("chat:%s:online" % context.chat_id)))
     if online_user_count >= 50:
