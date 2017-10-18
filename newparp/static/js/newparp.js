@@ -1,3 +1,6 @@
+// MOVIN CODE OVER TO THE NEW CODEBASE
+// ONE BY ONE
+
 var msparp = (function() {
 
 	var body = $(document.body);
@@ -448,20 +451,6 @@ var msparp = (function() {
 	}
 
 	return {
-		// Registration
-		"register": function() {
-			$("#register_show_password_input").change(function(e) {
-				$("#register_password_input, #register_password_again_input").attr("type", this.checked ? "text" : "password");
-			});
-		},
-		// Logging in
-		"log_in": function() {
-			$("#log_in_show_password_input").change(function(e) {
-				$("#log_in_password_input").attr("type", this.checked ? "text" : "password");
-			});
-			// Parse BBCode in chat info (if present)
-			$(".chat_info").each(function(line) { this.innerHTML = raw_bbencode(this.innerHTML, false); });
-		},
 		// Homepage
 		"home": function() {
 
