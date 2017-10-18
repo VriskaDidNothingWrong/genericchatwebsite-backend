@@ -22,15 +22,24 @@ def referer_or_home():
     return url_for("home")
 
 
-@not_logged_in_required
-def log_in_get():
-    return render_template("account/log_in.html")
+@use_db
+def get_user():
+    res = {
+        "token": g.csrf_token,
+        "logged_in": False
+    }
+
+    if g.user:
+        res["profile"] = g.user.to_dict(include_options=True)
+        res["logged_in"] = True
+
+    return jsonify(res)
 
 
 @alt_formats({"json"})
 @not_logged_in_required
 @use_db
-def log_in_post(fmt=None):
+def log_in_post(fmt="json"):
 
     # Check username, lowercase to make it case-insensitive.
     try:
@@ -38,38 +47,32 @@ def log_in_post(fmt=None):
             func.lower(User.username) == request.form["username"].lower()
         ).one()
     except NoResultFound:
-        if fmt == "json":
-            return jsonify({"error": "no_user"}), 400
-        return redirect(referer_or_home() + "?log_in_error=no_user")
+        return jsonify({"error": "login_no_user"}), 400
 
     # Check password.
     if not user.check_password(request.form["password"]):
-        if fmt == "json":
-            return jsonify({"error": "wrong_password"}), 400
-        return redirect(referer_or_home() + "?log_in_error=wrong_password")
+        return jsonify({"error": "login_wrong_password"}), 400
 
     g.redis.set("session:" + g.session_id, user.id, 2592000)
 
-    if fmt == "json":
-        return jsonify(user.to_dict(include_options=True))
-
-    redirect_url = referer_or_home()
-    # Make sure we don't go back to the log in page.
-    if redirect_url == url_for("log_in", _external=True):
-        return redirect(url_for("home"))
-    return redirect(redirect_url)
+    return jsonify({
+        "profile": user.to_dict(include_options=True)
+    })
 
 
 def log_out():
     if "newparp" in request.cookies:
         g.redis.delete("session:" + request.cookies["newparp"])
-        g.redis.delete("session:" + request.cookies["newparp"] + ":csrf")
-    return redirect(referer_or_home())
+        # XXX/TODO CONSTANTS FILE
+        g.redis.expire("session:%s:csrf" % g.session_id, 3600)
 
+    res = {
+        "token": g.csrf_token,
+        "logged_in": False,
+        "profile": {}
+    }
 
-@not_logged_in_required
-def register_get():
-    return render_template("account/register.html")
+    return jsonify(res)
 
 
 @not_logged_in_required
@@ -77,42 +80,42 @@ def register_get():
 def register_post():
 
     if g.redis.exists("register:" + request.headers.get("X-Forwarded-For", request.remote_addr)):
-        return redirect(referer_or_home() + "?register_error=ip")
+        return jsonify({"error": "register_ip"}), 400
 
     # Don't accept blank fields.
     if request.form["username"] == "" or request.form["password"] == "":
-        return redirect(referer_or_home() + "?register_error=blank")
+        return jsonify({"error": "register_blank"}), 400
 
     # Make sure the two passwords match.
     if request.form["password"] != request.form["password_again"]:
-        return redirect(referer_or_home() + "?register_error=passwords_didnt_match")
+        return jsonify({"error": "register_passwords_didnt_match"}), 400
 
     # Check email address against email_validator.
     # Silently truncate it because the only way it can be longer is if they've hacked the front end.
     email_address = request.form.get("email_address").strip()[:100]
     if not email_address:
-        return redirect(referer_or_home() + "?register_error=blank_email")
+        return jsonify({"error": "register_blank_email"}), 400
     if email_validator.match(email_address) is None:
-        return redirect(referer_or_home() + "?register_error=invalid_email")
+        return jsonify({"error": "register_invalid_email"}), 400
 
     # Make sure this email address hasn't been taken before.
     if g.db.query(User.id).filter(
         func.lower(User.email_address) == email_address.lower()
     ).count() != 0:
-        return redirect(referer_or_home() + "?register_error=email_taken")
+        return jsonify({"error": "register_email_taken"}), 400
 
     # Check username against username_validator.
     # Silently truncate it because the only way it can be longer is if they've hacked the front end.
     username = request.form["username"][:50]
     if username_validator.match(username) is None:
-        return redirect(referer_or_home() + "?register_error=invalid_username")
+        return jsonify({"error": "register_invalid_username"}), 400
 
     # Make sure this username hasn't been taken before.
     # Also check against reserved usernames.
     if username.startswith("guest_") or g.db.query(User.id).filter(
         func.lower(User.username) == username.lower()
     ).count() == 1 or username.lower() in reserved_usernames:
-        return redirect(referer_or_home() + "?register_error=username_taken")
+        return jsonify({"error": "register_username_taken"}), 400
 
     new_user = User(
         username=username,
@@ -131,9 +134,7 @@ def register_post():
 
     g.db.commit()
 
-    redirect_url = referer_or_home()
-    # Make sure we don't go back to the log in page.
-    if redirect_url == url_for("register", _external=True):
-        return redirect(url_for("home"))
-    return redirect(redirect_url)
+    return jsonify({
+        "profile": new_user.to_dict(include_options=True)
+    })
 

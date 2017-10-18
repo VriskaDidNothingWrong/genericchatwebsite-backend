@@ -91,21 +91,13 @@ def make_rules(subdomain, path, func, formats=False, paging=False):
 
 # 1. Home/account
 
-app.add_url_rule("/health", "health", views.health, methods=("GET",))
-
 app.add_url_rule("/", "home", views.home, methods=("GET",))
 
 make_rules("unread", "/unread", views.unread, formats=True)
 
-app.add_url_rule("/log_in", "log_in", account.log_in_get, methods=("GET",))
-app.add_url_rule("/log_in", "log_in_post", account.log_in_post, methods=("POST",))
-app.add_url_rule("/log_in.<fmt>", "log_in_post", account.log_in_post, methods=("POST",))
-# Fake rule for GET, because if we only accept POST then the chat creation check
-# doesn't find it.
-app.add_url_rule("/log_out", "log_out_404", lambda: abort(404), methods=("GET",))
-app.add_url_rule("/log_out", "log_out", account.log_out, methods=("POST",))
-app.add_url_rule("/register", "register", account.register_get, methods=("GET",))
-app.add_url_rule("/register", "register_post", account.register_post, methods=("POST",))
+app.add_url_rule("/api/user/log_in", "log_in_post", account.log_in_post, methods=("POST",))
+app.add_url_rule("/api/user/log_out", "log_out", account.log_out, methods=("POST",))
+app.add_url_rule("/api/user/register", "register_post", account.register_post, methods=("POST",))
 
 app.add_url_rule("/settings", "settings", settings.home_get, methods=("GET",))
 app.add_url_rule("/settings", "settings_post", settings.home_post, methods=("POST",))
@@ -119,6 +111,8 @@ app.add_url_rule("/settings/verify_email", "settings_verify_email", settings.ver
 app.add_url_rule("/settings/change_password", "settings_change_password", settings.change_password, methods=("POST",))
 make_rules("settings", "/settings/blocks", settings.blocks, formats=True)
 app.add_url_rule("/settings/unblock", "settings_unblock", settings.unblock, methods=("POST",))
+
+app.add_url_rule("/api/user", "get_user", account.get_user, methods=("GET",))
 
 # 2. Chats list
 
@@ -190,21 +184,21 @@ app.add_url_rule("/redirect", "redirect", views.redirect_view, methods=("GET",))
 
 # 8. Chat API
 
-app.add_url_rule("/chat_api/send", "send", chat_api.send, methods=("POST",))
-app.add_url_rule("/chat_api/draft", "draft", chat_api.draft, methods=("POST",))
-app.add_url_rule("/chat_api/block", "block", chat_api.block, methods=("POST",))
-app.add_url_rule("/chat_api/set_state", "set_state", chat_api.set_state, methods=("POST",))
-app.add_url_rule("/chat_api/set_group", "set_group", chat_api.set_group, methods=("POST",))
-app.add_url_rule("/chat_api/user_action", "user_action", chat_api.user_action, methods=("POST",))
-app.add_url_rule("/chat_api/set_flag", "set_flag", chat_api.set_flag, methods=("POST",))
-app.add_url_rule("/chat_api/set_topic", "set_topic", chat_api.set_topic, methods=("POST",))
-app.add_url_rule("/chat_api/set_info", "set_info", chat_api.set_info, methods=("POST",))
-app.add_url_rule("/chat_api/save", "save", chat_api.save, methods=("POST",))
-app.add_url_rule("/chat_api/save_from_character", "save_from_character", chat_api.save_from_character, methods=("POST",))
-app.add_url_rule("/chat_api/save_variables", "save_variables", chat_api.save_variables, methods=("POST",))
-app.add_url_rule("/chat_api/request_username", "request_username", chat_api.request_username, methods=("POST",))
-app.add_url_rule("/chat_api/exchange_usernames", "exchange_usernames", chat_api.exchange_usernames, methods=("POST",))
-app.add_url_rule("/chat_api/look_up_user", "look_up_user", chat_api.look_up_user, methods=("POST",))
+app.add_url_rule("/api/chat/send", "send", chat_api.send, methods=("POST",))
+app.add_url_rule("/api/chat/draft", "draft", chat_api.draft, methods=("POST",))
+app.add_url_rule("/api/chat/block", "block", chat_api.block, methods=("POST",))
+app.add_url_rule("/api/chat/set_state", "set_state", chat_api.set_state, methods=("POST",))
+app.add_url_rule("/api/chat/set_group", "set_group", chat_api.set_group, methods=("POST",))
+app.add_url_rule("/api/chat/user_action", "user_action", chat_api.user_action, methods=("POST",))
+app.add_url_rule("/api/chat/set_flag", "set_flag", chat_api.set_flag, methods=("POST",))
+app.add_url_rule("/api/chat/set_topic", "set_topic", chat_api.set_topic, methods=("POST",))
+app.add_url_rule("/api/chat/set_info", "set_info", chat_api.set_info, methods=("POST",))
+app.add_url_rule("/api/chat/save", "save", chat_api.save, methods=("POST",))
+app.add_url_rule("/api/chat/save_from_character", "save_from_character", chat_api.save_from_character, methods=("POST",))
+app.add_url_rule("/api/chat/save_variables", "save_variables", chat_api.save_variables, methods=("POST",))
+app.add_url_rule("/api/chat/request_username", "request_username", chat_api.request_username, methods=("POST",))
+app.add_url_rule("/api/chat/exchange_usernames", "exchange_usernames", chat_api.exchange_usernames, methods=("POST",))
+app.add_url_rule("/api/chat/look_up_user", "look_up_user", chat_api.look_up_user, methods=("POST",))
 
 # 9. Admin
 
@@ -273,6 +267,11 @@ if not app.debug and not app.testing:
 # 12. Log cabin
 
 app.add_url_rule("/api/users.json", "api_users", views.api_users, methods=("GET",))
+
+
+# 13. Other
+
+app.add_url_rule("/health", "health", views.health, methods=("GET",))
 
 # XXX dear fucking lord we need traversal
 

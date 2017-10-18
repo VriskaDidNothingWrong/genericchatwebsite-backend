@@ -175,6 +175,7 @@ def create_chat():
 
     # Check the URL against the routing to make sure it doesn't crash into any
     # of the other routes.
+    # XXX/TODO: NODE ROUTING OH GOD
     route, args = current_app.url_map.bind("").match("/" + lower_url)
     if route != "rp_chat":
         return redirect(url_for("rp_groups", create_chat_error="url_taken"))
